@@ -1,0 +1,21 @@
+{
+  "name": "wox-plugin-dictionary",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint src tests",
+    "format": "prettier --write .",
+    "package": "python3 scripts/package.py"
+  },
+  "devDependencies": {
+    "eslint": "10.14.0",
+    "prettier": "3.10.1"
+  },
+  "overrides": {
+    "minimatch": "11.0.8"
+  }
+}
