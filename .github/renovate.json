@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices"],
+  "semanticCommits": "enabled",
+  "packageRules": [
+    {
+      "description": "Keep CI and engines on the minimum supported Node.js version",
+      "matchDepNames": ["node"],
+      "matchDepTypes": ["engines", "uses-with"],
+      "enabled": false
+    }
+  ]
+}
