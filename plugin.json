@@ -1,0 +1,66 @@
+{
+  "Id": "3c4ce4c8-fdc4-479c-bf66-16e550e75e43",
+  "Name": "Dictionary",
+  "Description": "Look up word definitions directly in Wox.",
+  "Author": "skulltrail",
+  "Version": "0.1.0",
+  "MinWoxVersion": "2.0.4",
+  "Runtime": "nodejs",
+  "Entry": "index.js",
+  "Icon": "relative:images/icon.svg",
+  "TriggerKeywords": ["define"],
+  "SupportedOS": ["windows", "linux", "darwin"],
+  "SettingDefinitions": [
+    {
+      "Type": "textbox",
+      "Value": {
+        "Key": "default_source",
+        "Label": "Preferred source",
+        "DefaultValue": "Free Dictionary API",
+        "Tooltip": "Free Dictionary API or the exact name of a custom API source."
+      }
+    },
+    {
+      "Type": "table",
+      "Value": {
+        "Key": "custom_sources",
+        "Title": "Custom sources",
+        "DefaultValue": "[]",
+        "Columns": [
+          {
+            "Key": "name",
+            "Label": "Name",
+            "Type": "text",
+            "Width": 150,
+            "Validators": [
+              {
+                "Type": "not_empty",
+                "Value": {}
+              }
+            ]
+          },
+          {
+            "Key": "url",
+            "Label": "API URL with {query}",
+            "Type": "text",
+            "Width": 300,
+            "Validators": [
+              {
+                "Type": "not_empty",
+                "Value": {}
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "Features": [
+    {
+      "Name": "debounce",
+      "Params": {
+        "IntervalMs": 400
+      }
+    }
+  ]
+}
