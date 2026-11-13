@@ -8,14 +8,8 @@
   "Runtime": "nodejs",
   "Entry": "index.js",
   "Icon": "relative:images/icon.svg",
-  "TriggerKeywords": [
-    "define"
-  ],
-  "SupportedOS": [
-    "windows",
-    "linux",
-    "darwin"
-  ],
+  "TriggerKeywords": ["define"],
+  "SupportedOS": ["windows", "linux", "darwin"],
   "SettingDefinitions": [
     {
       "Type": "textbox",
