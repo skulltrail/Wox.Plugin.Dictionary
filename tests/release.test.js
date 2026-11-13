@@ -5,6 +5,13 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
+test('release workflow handles an absent PR output', () => {
+  const workflow = fs.readFileSync('.github/workflows/ci.yml', 'utf8');
+  const expressions = workflow.match(/fromJSON\(steps\.release\.outputs\.pr[^)]*\)/g) || [];
+  assert.equal(expressions.length, 2);
+  for (const expression of expressions) assert.match(expression, /\|\| '\{\}'/);
+});
+
 test(
   'release formatting commits and pushes changes only when needed',
   { skip: process.platform === 'win32' },

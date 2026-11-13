@@ -66,14 +66,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.release.outputs.prs_created == 'true'
         with:
-          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          ref: ${{ fromJSON(steps.release.outputs.pr || '{}').headBranchName }}
           clean: false
           persist-credentials: false
       - name: Format release files
         if: steps.release.outputs.prs_created == 'true'
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
-          RELEASE_BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          RELEASE_BRANCH: ${{ fromJSON(steps.release.outputs.pr || '{}').headBranchName }}
         run: |
           ./node_modules/.bin/prettier --ignore-path /dev/null --config "$RUNNER_TEMP/release-prettier.json" --write .release-please-manifest.json CHANGELOG.md plugin.json
           git add .release-please-manifest.json CHANGELOG.md plugin.json
