@@ -3,13 +3,19 @@
   "Name": "Dictionary",
   "Description": "Look up word definitions directly in Wox.",
   "Author": "skulltrail",
-  "Version": "0.1.0",
+  "Version": "0.2.0",
   "MinWoxVersion": "2.0.4",
   "Runtime": "nodejs",
   "Entry": "index.js",
   "Icon": "relative:images/icon.svg",
-  "TriggerKeywords": ["define"],
-  "SupportedOS": ["windows", "linux", "darwin"],
+  "TriggerKeywords": [
+    "define"
+  ],
+  "SupportedOS": [
+    "windows",
+    "linux",
+    "darwin"
+  ],
   "SettingDefinitions": [
     {
       "Type": "textbox",
