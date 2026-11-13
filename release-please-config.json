@@ -2,9 +2,7 @@
   "release-type": "node",
   "packages": {
     ".": {
-      "extra-files": [
-        { "type": "json", "path": "plugin.json", "jsonpath": "$.Version" }
-      ]
+      "extra-files": [{ "type": "json", "path": "plugin.json", "jsonpath": "$.Version" }]
     }
   }
 }

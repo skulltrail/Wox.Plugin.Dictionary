@@ -19,7 +19,7 @@ Look up English definitions directly in [Wox](https://www.woxlauncher.com/). Typ
 
 ## Usage and sources
 
-Enter `define <word or phrase>`, for example `define serendipity`. Choose a result to copy it. Select a source in **Settings → Plugins → Dictionary** by entering its exact name under **Preferred source**.
+Enter `define <word or phrase>`, for example `define serendipity`. Definitions appear inline, with source and available details underneath. Choose a result to copy it. Select a source in **Settings → Plugins → Dictionary** by entering its exact name under **Preferred source**.
 
 | Source              | In-Wox definitions                                                   |
 | ------------------- | -------------------------------------------------------------------- |
