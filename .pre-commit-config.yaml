@@ -7,8 +7,17 @@ repos:
         language: system
         types: [file]
         exclude: ^(package-lock\.json|docs/superpowers/)
+        stages: [pre-commit]
       - id: eslint
         name: Lint staged JavaScript
         entry: ./node_modules/.bin/eslint
         language: system
         files: ^(src|tests)/.*\.js$
+        stages: [pre-commit]
+      - id: check
+        name: Check before push
+        entry: just check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

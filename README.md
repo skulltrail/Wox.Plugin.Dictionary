@@ -39,7 +39,7 @@ The query is URL-encoded; URLs cannot contain credentials, use a non-HTTPS schem
 ## Development
 
 ```sh
-just            # prepare: npm ci and install pre-commit hooks
+just            # prepare: npm ci and install Git hooks
 just prepare    # same as above
 just install    # build the plugin and open the Wox installer
 just test       # deterministic unit tests
@@ -49,6 +49,8 @@ just check fmt  # check formatting
 just package    # create dist/wox.plugin.Dictionary.wox
 just check      # formatting, lint, tests, and package
 ```
+
+The pre-commit hook formats and lints staged files. The pre-push hook runs `just check` on the working tree; run `just prepare` after cloning to install both hooks.
 
 [Renovate](https://docs.renovatebot.com/) opens pull requests for npm packages, the npm lockfile, and GitHub Actions using [.github/renovate.json](.github/renovate.json). It requires the [Renovate GitHub App](https://github.com/apps/renovate) on the repository. Node.js stays at the minimum supported version in CI and `engines`; raise it manually.
 

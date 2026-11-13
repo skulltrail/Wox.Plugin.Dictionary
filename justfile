@@ -2,8 +2,15 @@ set shell := ["sh", "-cu"]
 
 # Install development dependencies and configure Git hooks.
 prepare:
+    #!/usr/bin/env sh
+    set -eu
     npm ci
-    pre-commit install
+    hooks=$(git config --path --get core.hooksPath || true)
+    if [ "$hooks" = "$HOME/.jsh/lib/git/hooks" ]; then
+        GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0= pre-commit install -t pre-commit -t pre-push
+    else
+        pre-commit install -t pre-commit -t pre-push
+    fi
 
 # Build the package and open Wox's plugin installer.
 install: package
