@@ -54,6 +54,8 @@ The pre-commit hook formats and lints staged files. The pre-push hook runs `just
 
 [Renovate](https://docs.renovatebot.com/) opens pull requests for npm packages, the npm lockfile, and GitHub Actions using [.github/renovate.json](.github/renovate.json). It requires the [Renovate GitHub App](https://github.com/apps/renovate) on the repository. Node.js stays at the minimum supported version in CI and `engines`; raise it manually.
 
+Release automation requires an installed GitHub App with write access to repository contents, issues, and pull requests. Set the Actions variable `RELEASE_APP_ID` and secret `RELEASE_APP_PRIVATE_KEY` from the app credentials managed in Infisical. Release PRs are formatted automatically and trigger the same checks as other PRs.
+
 ## Credits & License
 
 Dictionary data is supplied by the selected service. Free Dictionary API returns source and license information with its entries.
