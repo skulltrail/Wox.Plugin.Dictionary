@@ -1,0 +1,10 @@
+{
+  "printWidth": 100,
+  "singleQuote": true,
+  "overrides": [
+    {
+      "files": ["*.yaml", "*.yml", "*.md", "*.json", "*.jsonc"],
+      "options": { "printWidth": 120 }
+    }
+  ]
+}
