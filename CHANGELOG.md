@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0](https://github.com/skulltrail/Wox.Plugin.Dictionary/compare/wox-plugin-dictionary-v0.2.0...wox-plugin-dictionary-v0.3.0) (2026-11-18)
+
+### Features
+
+- implement fallback source for dictionary lookups and enhance error handling ([96a41d3](https://github.com/skulltrail/Wox.Plugin.Dictionary/commit/96a41d30c12ebde51520d46d761c5e456cdb30c6))
+
 ## [0.2.0](https://github.com/skulltrail/Wox.Plugin.Dictionary/compare/wox-plugin-dictionary-v0.1.0...wox-plugin-dictionary-v0.2.0) (2026-11-13)
 
 ### Features
