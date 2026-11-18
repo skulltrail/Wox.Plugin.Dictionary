@@ -5,6 +5,11 @@ const builtins = [
     url: 'https://api.dictionaryapi.dev/api/v2/entries/en/{query}',
   },
 ];
+const fallbackSource = { name: 'FreeDictionaryAPI.com' };
+
+function markdown(text) {
+  return text.replace(/[\\`*_{}\[\]<>#|]/g, '\\$&');
+}
 
 function expandTemplate(template, query) {
   if (typeof template !== 'string' || template.split('{query}').length !== 2)
@@ -32,6 +37,33 @@ function parseFree(data) {
           license: entry.license,
         })),
     ),
+  );
+}
+
+function parseFallback(data) {
+  if (
+    !Array.isArray(data?.entries) ||
+    !data.source?.url ||
+    !data.source?.license?.name ||
+    !data.source?.license?.url
+  )
+    throw new Error('invalid response');
+  const sourceUrl = new URL(data.source.url);
+  if (sourceUrl.protocol !== 'https:' || sourceUrl.hostname !== 'en.wiktionary.org')
+    throw new Error('invalid source URL');
+  const senses = (items) => items.flatMap((sense) => [sense, ...senses(sense.subsenses || [])]);
+  return data.entries.flatMap((entry) =>
+    senses(entry.senses || [])
+      .filter((sense) => typeof sense.definition === 'string' && sense.definition.trim())
+      .map((sense) => ({
+        word: data.word,
+        pronunciation: entry.pronunciations?.find((p) => p.type === 'ipa')?.text,
+        part: entry.partOfSpeech,
+        definition: sense.definition,
+        example: sense.examples?.[0],
+        sourceUrl: sourceUrl.href,
+        license: data.source.license,
+      })),
   );
 }
 
@@ -64,7 +96,7 @@ function createPlugin(fetcher = fetch) {
         }
         if (!Array.isArray(sources))
           return message('Check Dictionary settings', 'Custom sources must be a valid table.');
-        const source = [...builtins, ...sources].find(
+        let source = [...builtins, ...sources].find(
           (item) => item.name === (selected || 'Free Dictionary API'),
         );
         if (!source)
@@ -78,11 +110,40 @@ function createPlugin(fetcher = fetch) {
             'Custom sources need a valid HTTPS API URL with one {query} placeholder.',
           );
         }
-        const response = await fetcher(url, {
-          signal: AbortSignal.timeout(5000),
-          redirect: 'error',
-        });
+        let response;
+        let definitions;
+        let primaryError;
+        try {
+          response = await fetcher(url, {
+            signal: AbortSignal.timeout(5000),
+            redirect: 'error',
+          });
+          if (response.ok) definitions = parseFree(await response.json());
+        } catch (error) {
+          primaryError = error;
+        }
         if (current !== sequence) return { Results: [] };
+        if (source === builtins[0] && (primaryError || (!response.ok && response.status !== 404))) {
+          try {
+            const fallbackResponse = await fetcher(
+              `https://freedictionaryapi.com/api/v1/entries/en/${encodeURIComponent(search)}`,
+              { signal: AbortSignal.timeout(5000), redirect: 'error' },
+            );
+            if (current !== sequence) return { Results: [] };
+            if (fallbackResponse.ok) {
+              const fallbackDefinitions = parseFallback(await fallbackResponse.json());
+              if (current !== sequence) return { Results: [] };
+              definitions = fallbackDefinitions;
+              response = fallbackResponse;
+              source = fallbackSource;
+              primaryError = undefined;
+            }
+          } catch {
+            // Keep the original error if the fallback is unavailable or invalid.
+          }
+        }
+        if (current !== sequence) return { Results: [] };
+        if (primaryError) throw primaryError;
         const noDefinitions = async () => {
           const fallback = message(
             'No definitions found',
@@ -164,12 +225,17 @@ function createPlugin(fetcher = fetch) {
         if (response.status === 404) return noDefinitions();
         if (response.status === 429)
           return message('Dictionary request limit reached', 'Try again later.');
-        if (response.status === 401 || response.status === 403)
-          return message('Dictionary access denied', 'Check the source access requirements.');
+        if (response.status === 401)
+          return message(
+            'Dictionary authentication required',
+            `${source.name} returned HTTP 401. Check its authentication requirements.`,
+          );
+        if (response.status === 403)
+          return message(
+            'Dictionary access forbidden',
+            `${source.name} returned HTTP 403. Check its access policy or network restrictions.`,
+          );
         if (!response.ok) return message('Dictionary unavailable', 'Try again later.');
-        const data = await response.json();
-        if (current !== sequence) return { Results: [] };
-        const definitions = parseFree(data);
         if (!definitions.length) return noDefinitions();
         return {
           Results: definitions.map((entry) => {
@@ -189,6 +255,26 @@ function createPlugin(fetcher = fetch) {
                 .filter((value) => typeof value === 'string' && value)
                 .join(' · '),
               Icon: icon,
+              Preview: {
+                PreviewType: 'markdown',
+                PreviewData: [
+                  `## ${markdown(typeof entry.word === 'string' ? entry.word : search)}`,
+                  [entry.pronunciation, entry.part]
+                    .filter((value) => typeof value === 'string' && value)
+                    .map(markdown)
+                    .join(' · '),
+                  markdown(entry.definition),
+                  typeof entry.example === 'string' && `Example: ${markdown(entry.example)}`,
+                  source === fallbackSource
+                    ? `Source: [Wiktionary](${entry.sourceUrl.replaceAll(')', '%29')}) · [FreeDictionaryAPI.com](https://freedictionaryapi.com/) · [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)`
+                    : [source.name, entry.sourceUrl, entry.license?.name, entry.license?.url]
+                        .filter((value) => typeof value === 'string' && value)
+                        .map(markdown)
+                        .join(' · '),
+                ]
+                  .filter(Boolean)
+                  .join('\n\n'),
+              },
               Actions: [
                 {
                   Name: 'Copy definition',

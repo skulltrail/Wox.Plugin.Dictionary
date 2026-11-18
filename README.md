@@ -19,14 +19,16 @@ Look up English definitions directly in [Wox](https://www.woxlauncher.com/). Typ
 
 ## Usage and sources
 
-Enter `define <word or phrase>`, for example `define serendipity`. Definitions appear inline, with source and available details underneath. Choose a result to copy it. Select a source in **Settings → Plugins → Dictionary** by entering its exact name under **Preferred source**.
+Enter `define <word or phrase>`, for example `define serendipity`. Select a result to read the full definition and available details in the preview; press Enter to copy the definition. Select a source in **Settings → Plugins → Dictionary** by entering its exact name under **Preferred source**.
 
 | Source              | In-Wox definitions                                                   |
 | ------------------- | -------------------------------------------------------------------- |
 | Free Dictionary API | Default; includes available pronunciation, examples, and attribution |
 | Custom API          | An HTTPS endpoint returning the Free Dictionary API JSON format      |
 
-Lookups are sent to the selected API while you type, after a short delay. When a word is not found, it is also sent to Wikipedia for spelling suggestions; choose one to look it up. Do not search for sensitive text. Free Dictionary API is a community service. Wikipedia suggestions are search corrections and may not always match the intended word.
+Lookups are sent to the selected API while you type, after a short delay. If the default Free Dictionary API is unavailable or returns an error other than “not found,” the lookup is also sent to [FreeDictionaryAPI.com](https://freedictionaryapi.com/) as a fallback. Custom sources do not use this fallback. When a word is not found, it is also sent to Wikipedia for spelling suggestions; choose one to look it up. Do not search for sensitive text. Free Dictionary API is a community service. Wikipedia suggestions are search corrections and may not always match the intended word.
+
+If a source returns HTTP 401, check its authentication requirements; for HTTP 403, check its access policy and any network restrictions. Custom sources cannot currently send authorization headers.
 
 Merriam-Webster, Dictionary.com, Cambridge, and Oxford Learner's Dictionaries are not currently supported for in-Wox results. Their APIs require separate access or licensing, and the plugin does not scrape their websites. Previous installs that selected one of those sources must change the preferred source in settings.
 
@@ -58,6 +60,6 @@ Release automation requires an installed GitHub App with write access to reposit
 
 ## Credits & License
 
-Dictionary data is supplied by the selected service. Free Dictionary API returns source and license information with its entries.
+Dictionary data is supplied by the selected service. Free Dictionary API returns source and license information with its entries. Fallback data is provided by [FreeDictionaryAPI.com](https://freedictionaryapi.com/) from Wiktionary under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); results include the original Wiktionary page and license information.
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

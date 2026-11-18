@@ -27,6 +27,112 @@ const response = (body, status = 200) => ({
   ok: status >= 200 && status < 300,
   json: async () => body,
 });
+const fallback = {
+  word: 'hello',
+  entries: [
+    {
+      partOfSpeech: 'noun',
+      pronunciations: [{ type: 'ipa', text: '/həˈləʊ/' }],
+      senses: [
+        {
+          definition: 'A greeting.',
+          examples: ['She said hello.'],
+          subsenses: [{ definition: 'A more specific greeting.', subsenses: [] }],
+        },
+      ],
+    },
+  ],
+  source: {
+    url: 'https://en.wiktionary.org/wiki/hello',
+    license: { name: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/' },
+  },
+};
+
+test('falls back when the default source fails and shows attribution', async () => {
+  for (const failure of [403, 429, 500, 'network', 'invalid']) {
+    const calls = [];
+    const plugin = createPlugin(async (url) => {
+      calls.push(url);
+      if (url.includes('dictionaryapi.dev')) {
+        if (failure === 'network') throw new Error('offline');
+        return failure === 'invalid' ? response({}) : response({}, failure);
+      }
+      return response(fallback);
+    });
+    await plugin.init({}, { API: api() });
+    const results = (await plugin.query({}, { Search: 'hello' })).Results;
+    const result = results[0];
+    assert.equal(calls[1], 'https://freedictionaryapi.com/api/v1/entries/en/hello');
+    assert.equal(result.Title, 'A greeting.');
+    assert.match(result.SubTitle, /FreeDictionaryAPI\.com/);
+    assert.match(result.SubTitle, /həˈləʊ.*noun/);
+    assert.match(result.SubTitle, /She said hello/);
+    assert.match(result.SubTitle, /https:\/\/en\.wiktionary\.org\/wiki\/hello/);
+    assert.match(result.SubTitle, /CC BY-SA 4\.0/);
+    assert.match(result.SubTitle, /https:\/\/creativecommons\.org\/licenses\/by-sa\/4\.0\//);
+    assert.equal(result.Preview.PreviewType, 'markdown');
+    assert.match(
+      result.Preview.PreviewData,
+      /\[Wiktionary\]\(https:\/\/en\.wiktionary\.org\/wiki\/hello\)/,
+    );
+    assert.match(
+      result.Preview.PreviewData,
+      /\[FreeDictionaryAPI\.com\]\(https:\/\/freedictionaryapi\.com\/\)/,
+    );
+    assert.equal(results[1].Title, 'A more specific greeting.');
+  }
+});
+
+test('preserves the primary error if the fallback fails', async () => {
+  for (const fallbackResponse of [response({}, 500), response({ entries: [] })]) {
+    const plugin = createPlugin(async (url) =>
+      url.includes('dictionaryapi.dev') ? response({}, 403) : fallbackResponse,
+    );
+    await plugin.init({}, { API: api() });
+    const result = (await plugin.query({}, { Search: 'hello' })).Results[0];
+    assert.equal(result.Title, 'Dictionary access forbidden');
+    assert.match(result.SubTitle, /Free Dictionary API.*403/);
+  }
+});
+
+test('does not send custom-source failures to the fallback', async () => {
+  const calls = [];
+  const plugin = createPlugin(async (url) => {
+    calls.push(url);
+    return response({}, 403);
+  });
+  await plugin.init(
+    {},
+    {
+      API: api({
+        default_source: 'Custom',
+        custom_sources: JSON.stringify([{ name: 'Custom', url: 'https://example.com/{query}' }]),
+      }),
+    },
+  );
+  await plugin.query({}, { Search: 'hello' });
+  assert.deepEqual(calls, ['https://example.com/hello']);
+});
+
+test('does not start a fallback for a superseded request', async () => {
+  let resolveOld;
+  const calls = [];
+  const plugin = createPlugin((url) => {
+    calls.push(url);
+    return url.endsWith('/old')
+      ? new Promise((resolve) => {
+          resolveOld = resolve;
+        })
+      : Promise.resolve(response(free));
+  });
+  await plugin.init({}, { API: api() });
+  const old = plugin.query({}, { Search: 'old' });
+  await new Promise((resolve) => setImmediate(resolve));
+  await plugin.query({}, { Search: 'hello' });
+  resolveOld(response({}, 403));
+  assert.deepEqual(await old, { Results: [] });
+  assert.equal(calls.length, 2);
+});
 
 test('encodes query and rejects unsafe custom URLs', () => {
   assert.equal(
@@ -54,11 +160,29 @@ test('shows definitions, pronunciation, source, example and attribution in Wox',
   assert.match(urls[0], /dictionaryapi\.dev.*hello/);
   assert.match(result.Title, /A greeting/);
   assert.match(result.SubTitle, /noun.*Free Dictionary API/);
-  assert.equal(result.Preview, undefined);
+  assert.equal(result.Preview.PreviewType, 'markdown');
+  assert.match(result.Preview.PreviewData, /A greeting\./);
+  assert.match(result.Preview.PreviewData, /She said hello\./);
   assert.match(result.SubTitle, /həˈləʊ/);
   assert.match(result.SubTitle, /She said hello/);
   assert.match(result.SubTitle, /wiktionary/);
   assert.match(result.SubTitle, /CC BY-SA 3.0/);
+});
+
+test('shows the full definition in the preview and copies it with the default action', async () => {
+  const copied = [];
+  const definition = 'A long definition with [special](https://example.com) characters.';
+  const data = [
+    { ...free[0], meanings: [{ partOfSpeech: 'noun', definitions: [{ definition }] }] },
+  ];
+  const plugin = createPlugin(async () => response(data));
+  await plugin.init({}, { API: { ...api(), Copy: async (_, value) => copied.push(value) } });
+  const result = (await plugin.query({}, { Search: 'hello' })).Results[0];
+  assert.match(result.Preview.PreviewData, /A long definition/);
+  assert.match(result.Preview.PreviewData, /\\\[special\\\]/);
+  assert.equal(result.Actions[0].IsDefault, true);
+  await result.Actions[0].Action({});
+  assert.deepEqual(copied, [{ type: 'text', text: definition }]);
 });
 
 test('supports custom API sources using Free Dictionary response format', async () => {
@@ -91,6 +215,30 @@ test('reports not found and service errors without leaking request details', asy
     const plugin = createPlugin(async () => response({}, status));
     await plugin.init({}, { API: api() });
     assert.match((await plugin.query({}, { Search: 'unknown' })).Results[0].Title, expected);
+  }
+});
+
+test('distinguishes authentication from forbidden access and identifies the selected source', async () => {
+  for (const [status, title] of [
+    [401, 'Dictionary authentication required'],
+    [403, 'Dictionary access forbidden'],
+  ]) {
+    const plugin = createPlugin(async () => response({}, status));
+    await plugin.init(
+      {},
+      {
+        API: api({
+          default_source: 'Custom dictionary',
+          custom_sources: JSON.stringify([
+            { name: 'Custom dictionary', url: 'https://example.com/{query}' },
+          ]),
+        }),
+      },
+    );
+    const result = (await plugin.query({}, { Search: 'hello' })).Results[0];
+    assert.equal(result.Title, title);
+    assert.match(result.SubTitle, /Custom dictionary/);
+    assert.match(result.SubTitle, new RegExp(String(status)));
   }
 });
 
